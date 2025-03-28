@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   StatusBar,
   TouchableOpacity,
-  Alert,
   Dimensions
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -15,7 +14,10 @@ import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import OrbVisualization, { OrbState } from '../components/OrbVisualization';
 
 // Import your services
-const { sendMessage, getMessages } = require('../services/realConversationService');
+import { sendMessage, getMessages } from '../services/realConversationService';
+
+// If using the speech services from the other team member
+// import { speakText, stopSpeaking, startListening, stopListeningAndGetTranscript } from '../services/speech';
 
 // Screen dimensions
 const { width, height } = Dimensions.get('window');
@@ -30,34 +32,65 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   // State for the Orb
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [transcript, setTranscript] = useState<string>('');
-  const [response, setResponse] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
   
   // Handle Orb press to start/stop voice recognition
   const handleOrbPress = async () => {
+    // For testing purposes, we'll cycle through states
+    // In a real implementation, this would use the speech service
     if (orbState === 'idle') {
-      // Start listening simulation
+      // Start listening
       setOrbState('listening');
       
-      // For hackathon demo: Simulate listening for 3 seconds then go to thinking
+      // If the speech-to-text service is integrated, use it here
+      /*
+      try {
+        await startListening();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setOrbState('idle');
+      }
+      */
+      
+      // For testing only - after 3 seconds, move to thinking state
       setTimeout(() => {
         setOrbState('thinking');
-        const simulatedTranscript = "I've been feeling anxious lately, any advice?";
-        setTranscript(simulatedTranscript);
-        processUserSpeech(simulatedTranscript);
+        processUserSpeech("I've been feeling anxious lately, any advice?");
       }, 3000);
       
     } else if (orbState === 'listening') {
       // Stop listening and process
       setOrbState('thinking');
-      processUserSpeech("I'm feeling stressed with work deadlines, what can I do?");
       
+      // If the speech-to-text service is integrated, use it here
+      /*
+      try {
+        const text = await stopListeningAndGetTranscript();
+        if (text) {
+          setTranscript(text);
+          processUserSpeech(text);
+        } else {
+          setOrbState('idle');
+        }
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        setOrbState('idle');
+      }
+      */
+    } else if (orbState === 'thinking') {
+      // Just for testing - for real implementation, let it complete
+      setOrbState('speaking');
     } else if (orbState === 'speaking') {
       // Stop speaking
-      setOrbState('idle');
-      setResponse('');
-    } else {
-      // If thinking, just go back to idle
+      
+      // If the text-to-speech service is integrated, use it here
+      /*
+      try {
+        await stopSpeaking();
+      } catch (error) {
+        console.error('Error stopping speech:', error);
+      }
+      */
+      
       setOrbState('idle');
     }
   };
@@ -65,9 +98,6 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   // Process user speech and get AI response
   const processUserSpeech = async (text: string) => {
     try {
-      setLoading(true);
-      console.log('Processing speech:', text);
-      
       // Send message to get AI response
       const updatedMessages = await sendMessage(text);
       
@@ -76,17 +106,13 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
         const lastMessage = updatedMessages[updatedMessages.length - 1];
         
         if (lastMessage.sender === 'orb') {
-          setResponse(lastMessage.text);
           // Start speaking the response
           speakOrbResponse(lastMessage.text);
         }
       }
     } catch (error) {
       console.error('Error processing speech:', error);
-      Alert.alert('Error', 'Failed to process your request. Please try again.');
       setOrbState('idle');
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -94,17 +120,22 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   const speakOrbResponse = (text: string) => {
     setOrbState('speaking');
     
-    // For hackathon demo: Simulate speaking for a duration based on text length
-    // Roughly 5 words per second for average speaking rate
-    const words = text.split(' ').length;
-    const speakingTimeMs = Math.max(3000, words * 200); // Minimum 3 seconds
+    // If the text-to-speech service is integrated, use it here
+    /*
+    speakText(text)
+      .then(() => {
+        setOrbState('idle');
+      })
+      .catch(error => {
+        console.error('Error with text-to-speech:', error);
+        setOrbState('idle');
+      });
+    */
     
-    console.log(`Speaking response for ${speakingTimeMs}ms: "${text}"`);
-    
+    // For testing - after 5 seconds, go back to idle
     setTimeout(() => {
       setOrbState('idle');
-      setResponse('');
-    }, speakingTimeMs);
+    }, 5000);
   };
   
   // Go to chat screen
@@ -138,21 +169,6 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
         <Text style={styles.guideText}>
           {renderGuideText()}
         </Text>
-        
-        {/* Response display when speaking */}
-        {orbState === 'speaking' && response && (
-          <View style={styles.responseContainer}>
-            <Text style={styles.responseText}>{response}</Text>
-          </View>
-        )}
-        
-        {/* Transcript display when processing */}
-        {orbState === 'thinking' && transcript && (
-          <View style={styles.transcriptContainer}>
-            <Text style={styles.transcriptLabel}>You said:</Text>
-            <Text style={styles.transcriptText}>{transcript}</Text>
-          </View>
-        )}
         
         {/* Orb visualization */}
         <View style={styles.orbContainer}>
@@ -192,36 +208,7 @@ const styles = StyleSheet.create({
   guideText: {
     ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.medium,
-  },
-  responseContainer: {
-    backgroundColor: COLORS.surface,
-    padding: SPACING.medium,
-    borderRadius: 16,
-    margin: SPACING.medium,
-    maxWidth: '80%',
-    maxHeight: '30%',
-  },
-  responseText: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.text,
-  },
-  transcriptContainer: {
-    backgroundColor: COLORS.userBubble,
-    padding: SPACING.medium,
-    borderRadius: 16,
-    margin: SPACING.small,
-    maxWidth: '80%',
-  },
-  transcriptLabel: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.tiny,
-  },
-  transcriptText: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.text,
-    fontStyle: 'italic',
+    marginBottom: SPACING.xlarge,
   },
   orbContainer: {
     flex: 1,
