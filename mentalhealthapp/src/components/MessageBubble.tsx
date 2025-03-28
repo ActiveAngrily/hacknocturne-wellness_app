@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
   },
   messageText: {
-    ...TYPOGRAPHY.body,
+    fontSize: TYPOGRAPHY.fontSize.md,
   },
   userText: {
     color: COLORS.text,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   timestamp: {
-    ...TYPOGRAPHY.caption,
+    fontSize: TYPOGRAPHY.fontSize.xs,
     marginTop: SPACING.tiny,
   },
   userTimestamp: {

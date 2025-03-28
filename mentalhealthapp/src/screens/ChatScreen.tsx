@@ -7,16 +7,17 @@ import {
   StatusBar,
   TouchableOpacity,
   Text,
-  Dimensions
+  Dimensions,
+  ActivityIndicator
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/index';
+import { RootStackParamList } from '../navigation';
 import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import MessageBubble, { Message } from '../components/MessageBubble';
 import ChatInput from '../components/ChatInput';
 
-// Import your real service instead of the mock
-import { getMessages, sendMessage } from '../services/realConversationService';
+// Import from our service index
+import * as ConversationService from '../services/mockConversationService';
 
 // Get screen dimensions
 const { width } = Dimensions.get('window');
@@ -32,14 +33,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
+  // Ref for FlatList
+  const flatListRef = useRef<FlatList>(null);
+  
   // Load initial messages
   useEffect(() => {
     const loadMessages = async () => {
       try {
-        const initialMessages = await getMessages();
+        const initialMessages = await ConversationService.getMessages();
         setMessages(initialMessages);
       } catch (error) {
         console.error('Error loading messages:', error);
+        // If there's an error, provide at least an initial message
+        setMessages([{
+          id: 'initial',
+          text: "Hello! I'm Orb, your mental health companion. How can I help you today?",
+          sender: 'orb',
+          timestamp: new Date()
+        }]);
       } finally {
         setLoading(false);
       }
@@ -51,12 +62,19 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   // Function to handle sending a new message
   const handleSendMessage = async (text: string) => {
     try {
-      // Show some loading state if needed
-      setLoading(true);
+      // Create a temporary user message to show immediately
+      const tempUserMessage: Message = {
+        id: `user-${Date.now()}`,
+        text,
+        sender: 'user',
+        timestamp: new Date()
+      };
       
-      // Send message and get updated conversation
-      const updatedMessages = await sendMessage(text);
-      setMessages(updatedMessages);
+      // Update UI immediately with the user message
+      setMessages(prev => [...prev, tempUserMessage]);
+      
+      // Show loading state
+      setLoading(true);
       
       // Scroll to bottom after sending
       setTimeout(() => {
@@ -64,10 +82,32 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           flatListRef.current.scrollToEnd({ animated: true });
         }
       }, 100);
+      
+      // Send message and get updated conversation
+      const updatedMessages = await ConversationService.sendMessage(text);
+      setMessages(updatedMessages);
+      
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // If sending fails, at least add a generic response
+      const errorOrbMessage: Message = {
+        id: `orb-${Date.now()}`,
+        text: "I'm having trouble connecting right now. Could you try again in a moment?",
+        sender: 'orb',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorOrbMessage]);
     } finally {
       setLoading(false);
+      
+      // Scroll to bottom after getting response
+      setTimeout(() => {
+        if (flatListRef.current && messages.length > 0) {
+          flatListRef.current.scrollToEnd({ animated: true });
+        }
+      }, 100);
     }
   };
   
@@ -75,9 +115,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const goBackToVoiceInterface = () => {
     navigation.navigate('Orb');
   };
-  
-  // Ref for FlatList
-  const flatListRef = useRef<FlatList<Message>>(null);
   
   // Render a message item
   const renderMessageItem = ({ item }: { item: Message }) => {
@@ -111,6 +148,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
       />
+      
+      {/* Loading indicator */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        </View>
+      )}
       
       {/* Chat input */}
       <ChatInput onSend={handleSendMessage} />
@@ -155,6 +199,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingVertical: SPACING.medium,
     paddingHorizontal: SPACING.small,
+  },
+  loadingContainer: {
+    padding: SPACING.small,
+    alignItems: 'center',
   },
 });
 

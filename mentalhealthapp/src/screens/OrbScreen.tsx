@@ -13,11 +13,8 @@ import { RootStackParamList } from '../navigation/index';
 import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import OrbVisualization, { OrbState } from '../components/OrbVisualization';
 
-// Import your services
-import { sendMessage, getMessages } from '../services/realConversationService';
-
-// If using the speech services from the other team member
-// import { speakText, stopSpeaking, startListening, stopListeningAndGetTranscript } from '../services/speech';
+// Import services from mock conversation service
+import * as ConversationService from '../services/mockConversationService';
 
 // Screen dimensions
 const { width, height } = Dimensions.get('window');
@@ -41,16 +38,6 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
       // Start listening
       setOrbState('listening');
       
-      // If the speech-to-text service is integrated, use it here
-      /*
-      try {
-        await startListening();
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
-        setOrbState('idle');
-      }
-      */
-      
       // For testing only - after 3 seconds, move to thinking state
       setTimeout(() => {
         setOrbState('thinking');
@@ -60,37 +47,14 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
     } else if (orbState === 'listening') {
       // Stop listening and process
       setOrbState('thinking');
+      setTranscript("I've been feeling stressed at work lately.");
+      processUserSpeech("I've been feeling stressed at work lately.");
       
-      // If the speech-to-text service is integrated, use it here
-      /*
-      try {
-        const text = await stopListeningAndGetTranscript();
-        if (text) {
-          setTranscript(text);
-          processUserSpeech(text);
-        } else {
-          setOrbState('idle');
-        }
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-        setOrbState('idle');
-      }
-      */
     } else if (orbState === 'thinking') {
       // Just for testing - for real implementation, let it complete
       setOrbState('speaking');
     } else if (orbState === 'speaking') {
       // Stop speaking
-      
-      // If the text-to-speech service is integrated, use it here
-      /*
-      try {
-        await stopSpeaking();
-      } catch (error) {
-        console.error('Error stopping speech:', error);
-      }
-      */
-      
       setOrbState('idle');
     }
   };
@@ -99,7 +63,7 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   const processUserSpeech = async (text: string) => {
     try {
       // Send message to get AI response
-      const updatedMessages = await sendMessage(text);
+      const updatedMessages = await ConversationService.sendMessage(text);
       
       // Get the most recent message (the Orb's response)
       if (updatedMessages && updatedMessages.length > 0) {
@@ -119,18 +83,6 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   // Have the Orb speak the response
   const speakOrbResponse = (text: string) => {
     setOrbState('speaking');
-    
-    // If the text-to-speech service is integrated, use it here
-    /*
-    speakText(text)
-      .then(() => {
-        setOrbState('idle');
-      })
-      .catch(error => {
-        console.error('Error with text-to-speech:', error);
-        setOrbState('idle');
-      });
-    */
     
     // For testing - after 5 seconds, go back to idle
     setTimeout(() => {
@@ -186,7 +138,7 @@ const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
         >
           <View style={styles.swipeHintBar} />
           <Text style={styles.swipeHintText}>
-            Swipe up for text chat
+            Tap here for text chat
           </Text>
         </TouchableOpacity>
       </View>
@@ -206,7 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   guideText: {
-    ...TYPOGRAPHY.body,
+    fontSize: TYPOGRAPHY.fontSize.md,
     color: COLORS.textSecondary,
     marginBottom: SPACING.xlarge,
   },
@@ -232,7 +184,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.small,
   },
   swipeHintText: {
-    ...TYPOGRAPHY.caption,
+    fontSize: TYPOGRAPHY.fontSize.xs,
     color: COLORS.textSecondary,
   },
 });

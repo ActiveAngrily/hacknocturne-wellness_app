@@ -17,7 +17,7 @@ const initialMessages: Message[] = [
 let messages = [...initialMessages];
 
 // Get all messages
-export const getMessages = (): Message[] => {
+export const getMessages = async (): Promise<Message[]> => {
   return [...messages];
 };
 
@@ -33,6 +33,9 @@ export const sendMessage = async (text: string): Promise<Message[]> => {
   
   // Add user message to the conversation
   messages.push(userMessage);
+  
+  // Add a small delay to simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Generate a mock response based on keywords
   const responseText = generateResponse(text);
@@ -72,6 +75,6 @@ const generateResponse = (userMessage: string): string => {
 };
 
 // Clear all messages except the initial ones
-export const resetConversation = (): void => {
+export const resetConversation = async (): Promise<void> => {
   messages = [...initialMessages];
 };
