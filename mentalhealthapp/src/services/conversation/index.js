@@ -2,8 +2,10 @@
 const { chatGptService } = require('./chatGptService');
 const { conversationStore } = require('./conversationStore');
 const { OPENAI_CONFIG } = require('./config');
-// At the top of your index.js or App.js file
-import 'dotenv/config';
+const dotenv = require('dotenv');
+
+// Initialize dotenv
+dotenv.config();
 
 // Initialize services
 const initializeConversationService = async () => {
