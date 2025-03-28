@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
   },
   messageText: {
-    fontSize: TYPOGRAPHY.fontSize.md,
+    ...TYPOGRAPHY.body,
   },
   userText: {
     color: COLORS.text,

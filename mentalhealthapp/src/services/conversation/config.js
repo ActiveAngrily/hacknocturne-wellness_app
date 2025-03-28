@@ -1,14 +1,15 @@
 // src/services/conversation/config.js
+import { ENV } from '../../config/env';
 
 // Configuration for conversation services
 const OPENAI_CONFIG = {
-   apiKey: process.env.OPENAI_API_KEY || 'your-key-will-be-set-at-runtime', // Don't hardcode the real key
-   model: 'gpt-4o',
+  apiKey: ENV.OPENAI_API_KEY, // Use environment variable
+  model: 'gpt-4o', // Latest model - change if needed
   maxTokens: 300,
-    temperature: 0.7, // Controls randomness (0-1)
-    frequencyPenalty: 0.5, // Reduces repetition
-    presencePenalty: 0.5, // Encourages topic variety
-    systemPrompt: `You are Orb, a mental health companion app. Your goal is to provide supportive, evidence-based guidance to help users manage their mental health.
+  temperature: 0.7, // Controls randomness (0-1)
+  frequencyPenalty: 0.5, // Reduces repetition
+  presencePenalty: 0.5, // Encourages topic variety
+  systemPrompt: `You are Orb, a mental health companion app. Your goal is to provide supportive, evidence-based guidance to help users manage their mental health.
   
   GUIDELINES:
   1. Be empathetic and supportive without making medical claims
@@ -23,6 +24,6 @@ const OPENAI_CONFIG = {
   7. If suggesting physical activities, start with gentle options
   
   In your responses, be warm, empathetic, and supportive. Use natural language that feels conversational and friendly.`
-  };
-  
-  module.exports = { OPENAI_CONFIG };
+};
+
+export { OPENAI_CONFIG };

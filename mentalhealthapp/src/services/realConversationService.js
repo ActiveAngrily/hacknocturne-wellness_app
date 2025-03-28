@@ -1,10 +1,11 @@
 // src/services/realConversationService.js
-const { 
-  sendMessage: sendChatGptMessage, 
+import { 
+  sendMessage as sendChatGptMessage, 
   getConversation, 
   clearConversation,
-  initializeConversationService
-} = require('./conversation');
+  initializeConversationService 
+} from './conversation';
+import { Message } from '../components/MessageBubble';
 
 // Track initialization status
 let isInitialized = false;
@@ -23,28 +24,51 @@ const initialize = async () => {
 };
 
 // Get all messages
-exports.getMessages = async () => {
+export const getMessages = async () => {
   await initialize();
   return getConversation();
 };
 
 // Send a message and get response
-exports.sendMessage = async (text) => {
-  await initialize();
-  
-  // Send message with ChatGPT
-  await sendChatGptMessage(text, {
-    // You can add context data here from other services
-    // healthData: {...},
-    // userProfile: {...}
-  });
-  
-  // Return updated conversation
-  return getConversation();
+export const sendMessage = async (text) => {
+  try {
+    await initialize();
+    
+    // Send message with ChatGPT
+    await sendChatGptMessage(text, {
+      // You can add context data here from other services
+      // For example:
+      // healthData: {
+      //   heartRate: 75,
+      //   heartRateBaseline: 72,
+      //   sleepHours: 7.5,
+      //   sleepBaseline: 8
+      // },
+      // userProfile: {
+      //   name: 'User',
+      //   age: 30
+      // }
+    });
+    
+    // Return updated conversation
+    return getConversation();
+  } catch (error) {
+    console.error('Error in realConversationService.sendMessage:', error);
+    
+    // Provide a fallback response if the service fails
+    const errorMessage = {
+      id: `error-${Date.now()}`,
+      text: "I'm sorry, I'm having trouble connecting to my services. Could you try again in a moment?",
+      sender: 'orb',
+      timestamp: new Date()
+    };
+    
+    return [...getConversation(), errorMessage];
+  }
 };
 
 // Clear conversation
-exports.resetConversation = async () => {
+export const resetConversation = async () => {
   await initialize();
   await clearConversation();
 };
