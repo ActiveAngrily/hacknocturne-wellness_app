@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,12 @@ import { RootStackParamList } from '../navigation/index';
 import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import OrbVisualization, { OrbState } from '../components/OrbVisualization';
 
+// Import your services
+import { sendMessage, getMessages } from '../services/realConversationService';
+
+// If using the speech services from the other team member
+// import { speakText, stopSpeaking, startListening, stopListeningAndGetTranscript } from '../services/speech';
+
 // Screen dimensions
 const { width, height } = Dimensions.get('window');
 
@@ -25,19 +31,111 @@ type OrbScreenProps = {
 const OrbScreen: React.FC<OrbScreenProps> = ({ navigation }) => {
   // State for the Orb
   const [orbState, setOrbState] = useState<OrbState>('idle');
+  const [transcript, setTranscript] = useState<string>('');
   
-  // Handle Orb press to cycle through states (for testing)
-  const handleOrbPress = () => {
-    // Cycle through states: idle -> listening -> speaking -> thinking -> idle
+  // Handle Orb press to start/stop voice recognition
+  const handleOrbPress = async () => {
+    // For testing purposes, we'll cycle through states
+    // In a real implementation, this would use the speech service
     if (orbState === 'idle') {
+      // Start listening
       setOrbState('listening');
+      
+      // If the speech-to-text service is integrated, use it here
+      /*
+      try {
+        await startListening();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        setOrbState('idle');
+      }
+      */
+      
+      // For testing only - after 3 seconds, move to thinking state
+      setTimeout(() => {
+        setOrbState('thinking');
+        processUserSpeech("I've been feeling anxious lately, any advice?");
+      }, 3000);
+      
     } else if (orbState === 'listening') {
+      // Stop listening and process
+      setOrbState('thinking');
+      
+      // If the speech-to-text service is integrated, use it here
+      /*
+      try {
+        const text = await stopListeningAndGetTranscript();
+        if (text) {
+          setTranscript(text);
+          processUserSpeech(text);
+        } else {
+          setOrbState('idle');
+        }
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        setOrbState('idle');
+      }
+      */
+    } else if (orbState === 'thinking') {
+      // Just for testing - for real implementation, let it complete
       setOrbState('speaking');
     } else if (orbState === 'speaking') {
-      setOrbState('thinking');
-    } else {
+      // Stop speaking
+      
+      // If the text-to-speech service is integrated, use it here
+      /*
+      try {
+        await stopSpeaking();
+      } catch (error) {
+        console.error('Error stopping speech:', error);
+      }
+      */
+      
       setOrbState('idle');
     }
+  };
+  
+  // Process user speech and get AI response
+  const processUserSpeech = async (text: string) => {
+    try {
+      // Send message to get AI response
+      const updatedMessages = await sendMessage(text);
+      
+      // Get the most recent message (the Orb's response)
+      if (updatedMessages && updatedMessages.length > 0) {
+        const lastMessage = updatedMessages[updatedMessages.length - 1];
+        
+        if (lastMessage.sender === 'orb') {
+          // Start speaking the response
+          speakOrbResponse(lastMessage.text);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing speech:', error);
+      setOrbState('idle');
+    }
+  };
+  
+  // Have the Orb speak the response
+  const speakOrbResponse = (text: string) => {
+    setOrbState('speaking');
+    
+    // If the text-to-speech service is integrated, use it here
+    /*
+    speakText(text)
+      .then(() => {
+        setOrbState('idle');
+      })
+      .catch(error => {
+        console.error('Error with text-to-speech:', error);
+        setOrbState('idle');
+      });
+    */
+    
+    // For testing - after 5 seconds, go back to idle
+    setTimeout(() => {
+      setOrbState('idle');
+    }, 5000);
   };
   
   // Go to chat screen

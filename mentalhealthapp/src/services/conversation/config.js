@@ -2,7 +2,7 @@
 
 // Configuration for conversation services
 const OPENAI_CONFIG = {
-    apiKey: 'YOUR_OPENAI_API_KEY', // Replace with the actual key
+    apiKey: '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', // Replace with the actual key
     model: 'gpt-4o',
     maxTokens: 300,
     temperature: 0.7, // Controls randomness (0-1)

@@ -14,7 +14,9 @@ import { RootStackParamList } from '../navigation/index';
 import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import MessageBubble, { Message } from '../components/MessageBubble';
 import ChatInput from '../components/ChatInput';
-import { getMessages, sendMessage } from '../services/mockConversationService';
+
+// Import your real service instead of the mock
+import { getMessages, sendMessage } from '../services/realConversationService';
 
 // Get screen dimensions
 const { width } = Dimensions.get('window');
@@ -28,17 +30,31 @@ type ChatScreenProps = {
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   // State for messages
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   
   // Load initial messages
   useEffect(() => {
-    // Get initial messages
-    const initialMessages = getMessages();
-    setMessages(initialMessages);
+    const loadMessages = async () => {
+      try {
+        const initialMessages = await getMessages();
+        setMessages(initialMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadMessages();
   }, []);
   
   // Function to handle sending a new message
   const handleSendMessage = async (text: string) => {
     try {
+      // Show some loading state if needed
+      setLoading(true);
+      
+      // Send message and get updated conversation
       const updatedMessages = await sendMessage(text);
       setMessages(updatedMessages);
       
@@ -50,6 +66,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
+    } finally {
+      setLoading(false);
     }
   };
   
