@@ -17,7 +17,112 @@ class ChatGptService {
     this.systemPrompt = OPENAI_CONFIG.systemPrompt;
   }
   
-  // ... (other methods remain unchanged)
+  // Initialize the service
+  async initialize() {
+    if (this.isInitialized) return true;
+    
+    try {
+      // Update API key from config in case it was set after construction
+      this.apiKey = OPENAI_CONFIG.apiKey;
+      
+      // Initialize conversation store
+      if (!conversationStore.isInitialized) {
+        await conversationStore.initialize();
+      }
+      
+      this.isInitialized = true;
+      console.log('ChatGPT service initialized');
+      console.log('API Key available:', this.apiKey ? 'Yes' : 'No');
+      return true;
+    } catch (error) {
+      console.error('Error initializing ChatGPT service:', error);
+      return false;
+    }
+  }
+  
+  // Send a message to ChatGPT API
+  async sendMessage(text, contextData = {}) {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+    
+    try {
+      // Add user message to conversation
+      await conversationStore.addUserMessage(text);
+      
+      // Update API key from config in case it was updated
+      this.apiKey = OPENAI_CONFIG.apiKey;
+      
+      // Check if API key is present
+      if (!this.apiKey) {
+        throw new Error('Missing OpenAI API key');
+      }
+      
+      // Build system message with context
+      const systemMessage = this._buildSystemMessage(contextData);
+      
+      // Get recent conversation
+      const conversationMessages = conversationStore.toChatGptMessages();
+      
+      // Prepare messages for API
+      const messages = [
+        { role: 'system', content: systemMessage },
+        ...conversationMessages.slice(-10) // Last 10 messages for context
+      ];
+      
+      console.log('Sending request to OpenAI API...');
+      
+      // Make API request
+      const response = await axios.post(
+        API_ENDPOINTS.CHAT_COMPLETIONS,
+        {
+          model: this.model,
+          messages: messages,
+          max_tokens: OPENAI_CONFIG.maxTokens,
+          temperature: OPENAI_CONFIG.temperature,
+          frequency_penalty: OPENAI_CONFIG.frequencyPenalty,
+          presence_penalty: OPENAI_CONFIG.presencePenalty
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`
+          },
+          timeout: 15000 // 15 second timeout
+        }
+      );
+      
+      // Extract response text
+      if (response.data?.choices?.[0]?.message?.content) {
+        const responseText = response.data.choices[0].message.content;
+        
+        // Add AI response to conversation
+        await conversationStore.addOrbMessage(responseText);
+        
+        return responseText;
+      } else {
+        throw new Error('Invalid API response format');
+      }
+    } catch (error) {
+      console.error('Error sending message to ChatGPT:', error.response?.data || error.message);
+      
+      // If API fails, use a fallback response
+      const fallbackResponse = this._getFallbackResponse(text);
+      await conversationStore.addOrbMessage(fallbackResponse);
+      
+      return fallbackResponse;
+    }
+  }
+  
+  // Get conversation history
+  getConversation() {
+    return conversationStore.getMessages();
+  }
+  
+  // Clear conversation history
+  async clearConversation() {
+    return conversationStore.clearConversation();
+  }
   
   // Build system message with context data
   _buildSystemMessage(contextData) {
@@ -37,7 +142,7 @@ class ChatGptService {
     if (healthData) {
       systemMessage += `\n\nRECENT HEALTH DATA:
 - Heart rate: ${healthData.heartRate ? `${healthData.heartRate} bpm (baseline: ${healthData.heartRateBaseline} bpm)` : 'Not available'}
-- Sleep: ${healthData.sleepHours ? `${healthData.sleepHours} hours (baseline: ${healthData.sleepBaseline} hours)` : 'Not available'}  
+- Sleep: ${healthData.sleepHours ? `${healthData.sleepHours} hours (baseline: ${healthData.sleepBaseline} hours)` : 'Not available'}
 - Steps: ${healthData.steps ? `${healthData.steps} steps (baseline: ${healthData.stepsBaseline} steps)` : 'Not available'}`;
       
       // Add health insights if significant deviations
@@ -75,7 +180,7 @@ class ChatGptService {
     }
     
     if (lowerCaseMessage.includes('sad') || lowerCaseMessage.includes('depress')) {
-      return "I'm sorry to hear you're feeling this way. Sometimes it helps to talk about what's bothering you or engage in an activity you enjoy. Would you like some suggestions?";  
+      return "I'm sorry to hear you're feeling this way. Sometimes it helps to talk about what's bothering you or engage in an activity you enjoy. Would you like some suggestions?";
     }
     
     // Default fallback response
