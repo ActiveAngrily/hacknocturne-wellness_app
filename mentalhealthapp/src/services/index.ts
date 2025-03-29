@@ -1,9 +1,7 @@
 // Service index - choose which implementation to use
 
-// Uncomment the service you want to use:
-
 // Use mock service (for development without API key)
-// export * from './mockConversationService';
+//export * from './mockConversationService';
 
-// Use real OpenAI GPT service
+// Use real OpenAI GPT service - commenting out to fix blank screen issue
 export * from './realConversationService';

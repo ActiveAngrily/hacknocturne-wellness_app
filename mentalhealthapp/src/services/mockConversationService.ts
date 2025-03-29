@@ -9,7 +9,7 @@ const initialMessages: Message[] = [
     id: generateId(),
     text: "Hello! I'm Orb, your mental health companion. How are you feeling today?",
     sender: 'orb',
-    timestamp: new Date(Date.now() - 60000) // 1 minute ago
+    timestamp: new Date()
   }
 ];
 

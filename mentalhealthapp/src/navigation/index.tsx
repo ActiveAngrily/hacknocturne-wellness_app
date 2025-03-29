@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// We'll import screens once we create them
+// Import screens
 import OrbScreen from '../screens/OrbScreen';
 import ChatScreen from '../screens/ChatScreen';
 
