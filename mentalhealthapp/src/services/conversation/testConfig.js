@@ -1,6 +1,6 @@
 // src/services/conversation/testConfig.js
 
-const { OPENAI_CONFIG } = require('./config');
+const { OPENAI_CONFIG } = require('./config.cjs');
 
 // Test function to verify config is loaded correctly
 const testConfig = () => {

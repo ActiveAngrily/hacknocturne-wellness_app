@@ -1,10 +1,10 @@
 // src/services/conversation/config.js
-import { ENV } from '../../config/env';
+require('dotenv').config();
 
 // Configuration for conversation services
 const OPENAI_CONFIG = {
-  apiKey: ENV.OPENAI_API_KEY, // Use environment variable
-  model: 'gpt-4o', // Latest model - change if needed
+  apiKey: process.env.OPENAI_API_KEY || '', // Use environment variable
+  model: 'gpt-3.5-turbo', // More widely available model
   maxTokens: 300,
   temperature: 0.7, // Controls randomness (0-1)
   frequencyPenalty: 0.5, // Reduces repetition
@@ -26,4 +26,4 @@ const OPENAI_CONFIG = {
   In your responses, be warm, empathetic, and supportive. Use natural language that feels conversational and friendly.`
 };
 
-export { OPENAI_CONFIG };
+module.exports = { OPENAI_CONFIG };

@@ -1,17 +1,22 @@
 // src/services/conversation/index.js
-import { chatGptService } from './chatGptService';
-import { conversationStore } from './conversationStore';
-import { OPENAI_CONFIG } from './config';
+const { chatGptService } = require('./chatGptService');
+const { conversationStore } = require('./conversationStore');
+const { OPENAI_CONFIG } = require('./config');
 
 // Initialize services
-export const initializeConversationService = async () => {
+const initializeConversationService = async (apiKey = null) => {
+  // Set API key if provided
+  if (apiKey) {
+    OPENAI_CONFIG.apiKey = apiKey;
+  }
+  
   const result = await chatGptService.initialize();
   console.log('Conversation service initialization:', result ? 'SUCCESS' : 'FAILED');
   return result;
 };
 
 // Helper function to send message and get response
-export const sendMessage = async (text, contextData = {}) => {
+const sendMessage = async (text, contextData = {}) => {
   if (!chatGptService.isInitialized) {
     await chatGptService.initialize();
   }
@@ -19,17 +24,21 @@ export const sendMessage = async (text, contextData = {}) => {
 };
 
 // Helper function to get conversation history
-export const getConversation = () => {
+const getConversation = () => {
   return chatGptService.getConversation();
 };
 
 // Helper function to clear conversation
-export const clearConversation = async () => {
+const clearConversation = async () => {
   return chatGptService.clearConversation();
 };
 
-export {
+module.exports = {
   chatGptService,
   conversationStore,
-  OPENAI_CONFIG
+  OPENAI_CONFIG,
+  initializeConversationService,
+  sendMessage,
+  getConversation,
+  clearConversation
 };

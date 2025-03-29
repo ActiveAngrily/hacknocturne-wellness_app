@@ -1,4 +1,4 @@
-import { conversationStore } from './conversationStore';
+import { conversationStore } from './conversationStore.js';
 
 // Function to test conversation store
 const testConversationStore = async () => {

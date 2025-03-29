@@ -1,8 +1,7 @@
 // src/services/conversation/chatGptService.js
-import axios from 'axios';
-import { OPENAI_CONFIG } from './config';
-import { conversationStore } from './conversationStore';
-import { validateEnv } from '../../config/env';
+const axios = require('axios');
+const { OPENAI_CONFIG } = require('./config');
+const { conversationStore } = require('./conversationStore');
 
 // API endpoints
 const API_ENDPOINTS = {
@@ -23,13 +22,7 @@ class ChatGptService {
     if (this.isInitialized) return true;
     
     try {
-      // Validate environment variables
-      const isEnvValid = validateEnv();
-      if (!isEnvValid) {
-        console.warn('Environment validation failed. Using fallback responses.');
-      }
-      
-      // Initialize conversation store regardless
+      // Initialize conversation store
       await conversationStore.initialize();
       
       this.isInitialized = true;
@@ -48,7 +41,7 @@ class ChatGptService {
     }
     
     try {
-      // Add user message to conversation right away (for UI responsiveness)
+      // Add user message to conversation
       await conversationStore.addUserMessage(text);
       
       // Check if API key is present
@@ -85,25 +78,17 @@ class ChatGptService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`
-          },
-          timeout: 10000 // 10 second timeout
+          }
         }
       );
       
       // Extract response text
-      if (response.data && 
-          response.data.choices && 
-          response.data.choices.length > 0 && 
-          response.data.choices[0].message) {
-        const responseText = response.data.choices[0].message.content;
-        
-        // Add AI response to conversation
-        await conversationStore.addOrbMessage(responseText);
-        
-        return responseText;
-      } else {
-        throw new Error('Invalid API response format');
-      }
+      const responseText = response.data.choices[0].message.content;
+      
+      // Add AI response to conversation
+      await conversationStore.addOrbMessage(responseText);
+      
+      return responseText;
     } catch (error) {
       console.error('Error sending message to ChatGPT:', error);
       
@@ -184,10 +169,6 @@ class ChatGptService {
       return "I'm sorry to hear you're feeling this way. Sometimes it helps to talk about what's bothering you or engage in an activity you enjoy. Would you like some suggestions?";
     }
     
-    if (lowerCaseMessage.includes('sleep') || lowerCaseMessage.includes('tired')) {
-      return "Sleep is so important for mental health. Have you tried establishing a consistent bedtime routine? Reducing screen time before bed can also help improve sleep quality.";
-    }
-    
     // Default fallback response
     return "I'm here to support you. Can you tell me more about what you're experiencing? (Note: I'm currently having some technical difficulties but still want to help)";
   }
@@ -196,4 +177,4 @@ class ChatGptService {
 // Create and export singleton instance
 const chatGptService = new ChatGptService();
 
-export { chatGptService };
+module.exports = { chatGptService };

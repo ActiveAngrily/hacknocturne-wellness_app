@@ -1,74 +1,133 @@
-// src/services/realConversationService.js
-import { 
-  sendMessage as sendChatGptMessage, 
-  getConversation, 
-  clearConversation,
-  initializeConversationService 
-} from './conversation';
+// src/services/realConversationService.ts
 import { Message } from '../components/MessageBubble';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Import the node.js modules dynamically for React Native
+const conversation = require('./conversation');
+const { 
+  chatGptService, 
+  OPENAI_CONFIG 
+} = conversation;
 
 // Track initialization status
 let isInitialized = false;
 
-// Initialize the service once
-const initialize = async () => {
-  if (!isInitialized) {
-    try {
-      isInitialized = await initializeConversationService();
-      console.log('Real conversation service initialized:', isInitialized);
-    } catch (error) {
-      console.error('Failed to initialize conversation service:', error);
-    }
-  }
-  return isInitialized;
-};
-
-// Get all messages
-export const getMessages = async () => {
-  await initialize();
-  return getConversation();
-};
-
-// Send a message and get response
-export const sendMessage = async (text) => {
+/**
+ * Initialize the conversation service with the OpenAI API key
+ */
+export const initialize = async (apiKey?: string): Promise<boolean> => {
   try {
+    // Set the API key in config if provided
+    if (apiKey && apiKey.length > 0) {
+      OPENAI_CONFIG.apiKey = apiKey;
+      console.log('API key set successfully');
+    } else {
+      console.warn('No API key provided, will use env variable if available');
+    }
+    
+    // Initialize the service
+    if (!isInitialized) {
+      isInitialized = await chatGptService.initialize();
+      console.log('Real conversation service initialized:', isInitialized);
+    }
+    return isInitialized;
+  } catch (error) {
+    console.error('Failed to initialize conversation service:', error);
+    return false;
+  }
+};
+
+/**
+ * Get all messages from the conversation
+ */
+export const getMessages = async (): Promise<Message[]> => {
+  // Try to initialize if not already done
+  if (!isInitialized) {
     await initialize();
+  }
+  
+  try {
+    return chatGptService.getConversation();
+  } catch (error) {
+    console.error('Error getting messages:', error);
+    // Return a fallback initial message if there's an error
+    return [{
+      id: 'initial',
+      text: "Hello! I'm Orb, your mental health companion. How can I help you today?",
+      sender: 'orb',
+      timestamp: new Date()
+    }];
+  }
+};
+
+/**
+ * Send a message and get response
+ */
+export const sendMessage = async (text: string): Promise<Message[]> => {
+  try {
+    // Try to initialize if not already done
+    if (!isInitialized) {
+      await initialize();
+    }
     
     // Send message with ChatGPT
-    await sendChatGptMessage(text, {
+    await chatGptService.sendMessage(text, {
       // You can add context data here from other services
-      // For example:
-      // healthData: {
-      //   heartRate: 75,
-      //   heartRateBaseline: 72,
-      //   sleepHours: 7.5,
-      //   sleepBaseline: 8
-      // },
-      // userProfile: {
-      //   name: 'User',
-      //   age: 30
-      // }
     });
     
     // Return updated conversation
-    return getConversation();
+    return chatGptService.getConversation();
   } catch (error) {
     console.error('Error in realConversationService.sendMessage:', error);
     
-    // Provide a fallback response if the service fails
-    const errorMessage = {
+    // Get the current conversation to append our error message
+    let currentConversation;
+    try {
+      currentConversation = chatGptService.getConversation();
+    } catch (e) {
+      // If we can't get the conversation, start with a basic array
+      currentConversation = [];
+    }
+    
+    // Add user message if it's not already there
+    const userMessageExists = currentConversation.some(
+      (msg: Message) => msg.sender === 'user' && msg.text === text
+    );
+    
+    if (!userMessageExists) {
+      currentConversation.push({
+        id: `user-${Date.now()}`,
+        text,
+        sender: 'user',
+        timestamp: new Date()
+      });
+    }
+    
+    // Add error message
+    currentConversation.push({
       id: `error-${Date.now()}`,
       text: "I'm sorry, I'm having trouble connecting to my services. Could you try again in a moment?",
       sender: 'orb',
       timestamp: new Date()
-    };
+    });
     
-    return [...getConversation(), errorMessage];
+    return currentConversation;
   }
 };
 
-// Clear conversation
-export const resetConversation = async () => {
-  await initialize();
-  await clearConversation();
+/**
+ * Reset the conversation
+ */
+export const resetConversation = async (): Promise<void> => {
+  try {
+    // Try to initialize if not already done
+    if (!isInitialized) {
+      await initialize();
+    }
+    
+    await chatGptService.clearConversation();
+  } catch (error) {
+    console.error('Error resetting conversation:', error);
+    // No need to throw, just log the error
+  }
 };

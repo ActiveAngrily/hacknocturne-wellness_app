@@ -1,5 +1,5 @@
 // src/services/conversation/testConversationStore.js
-const { conversationStore } = require('./conversationStore');
+const { conversationStore } = require('./conversationStore.js');
 
 // Function to test conversation store
 const testConversationStore = async () => {

@@ -1,5 +1,12 @@
 // src/services/conversation/conversationStore.js
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Check if we're in a Node.js environment (for testing) or React Native
+const isNodeEnvironment = typeof window === 'undefined';
+
+// Use the appropriate storage implementation
+const AsyncStorage = isNodeEnvironment 
+  ? require('./mockAsyncStorage')
+  : require('@react-native-async-storage/async-storage');
 
 // Keys for AsyncStorage
 const STORAGE_KEYS = {
@@ -148,4 +155,4 @@ class ConversationStore {
 // Create and export singleton instance
 const conversationStore = new ConversationStore();
 
-export { conversationStore };
+module.exports = { conversationStore };

@@ -17,7 +17,7 @@ import MessageBubble, { Message } from '../components/MessageBubble';
 import ChatInput from '../components/ChatInput';
 
 // Import from our service index
-import * as ConversationService from '../services/mockConversationService';
+import * as ConversationService from '../services';
 
 // Get screen dimensions
 const { width } = Dimensions.get('window');
