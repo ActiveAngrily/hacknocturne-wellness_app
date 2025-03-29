@@ -16,14 +16,24 @@
     "@react-navigation/native": "^7.0.19",
     "@react-navigation/stack": "^7.2.3",
     "axios": "^1.8.4",
+<<<<<<< Updated upstream
     "boxen": "^8.0.1",
     "chalk": "^5.4.1",
+=======
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+>>>>>>> Stashed changes
     "dotenv": "^16.4.7",
     "expo": "~52.0.41",
     "expo-speech": "^13.0.1",
     "expo-status-bar": "~2.0.1",
+<<<<<<< Updated upstream
     "figlet": "^1.8.0",
     "gradient-string": "^3.0.0",
+=======
+    "figlet": "^1.6.0",
+    "gradient-string": "^2.0.2",
+>>>>>>> Stashed changes
     "openai": "^4.90.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",

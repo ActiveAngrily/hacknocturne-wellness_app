@@ -1,0 +1,14 @@
+{
+  "name": "Anant",
+  "age": 19,
+  "conditions": [
+    "None"
+  ],
+  "lastAssessment": null,
+  "assessmentFrequency": 1,
+  "baselineHeartRate": 72,
+  "baselineSleep": 7.5,
+  "preferredCheckInTime": "09:00",
+  "checkInFrequency": "daily",
+  "insightsEnabled": true
+}
