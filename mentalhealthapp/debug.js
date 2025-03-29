@@ -2,6 +2,7 @@
 // Main debugging script for Mental Health Companion App
 require('dotenv').config();
 const axios = require('axios');
+const path = require('path');
 
 // --- PHASE 1: Check Environment ---
 async function checkEnvironment() {
@@ -360,21 +361,31 @@ async function testFullIntegration() {
   console.log("\n=== PHASE 6: FULL INTEGRATION ===");
   
   try {
-    // Import the service used by the app
-    const ConversationService = require('./src/services');
+    // For Node.js environment, we can test the individual components directly
+    // rather than importing the TypeScript modules
+    // This is a workaround since we can't directly import the TypeScript index.ts in Node.js
     
-    console.log("🔄 Testing service initialization...");
-    const initialized = await ConversationService.initialize(process.env.OPENAI_API_KEY);
+    // Import the individual services we need to test
+    const { conversationStore } = require('./src/services/conversation/conversationStore');
+    const { chatGptService } = require('./src/services/conversation/chatGptService');
     
-    if (!initialized) {
-      console.warn("⚠️ Service initialization returned false, but continuing with test");
-    } else {
-      console.log("✅ Service initialized successfully");
+    console.log("🔄 Testing service interaction flow...");
+    
+    // Start with a clean conversation
+    await conversationStore.clearConversation();
+    
+    // Make sure both services are initialized
+    if (!conversationStore.isInitialized) {
+      await conversationStore.initialize();
+    }
+    
+    if (!chatGptService.isInitialized) {
+      await chatGptService.initialize();
     }
     
     // Get initial messages
     console.log("🔄 Getting initial messages...");
-    const initialMessages = await ConversationService.getMessages();
+    const initialMessages = conversationStore.getMessages();
     
     if (!Array.isArray(initialMessages)) {
       console.error("❌ Failed to get initial messages");
@@ -383,20 +394,24 @@ async function testFullIntegration() {
     
     console.log(`✅ Got ${initialMessages.length} initial messages`);
     
-    // Send a test message
-    console.log("🔄 Sending test message...");
+    // Send a test message using the service
+    console.log("🔄 Sending test message through ChatGPT service...");
     const testMessage = "Hello, this is an integration test. Please respond with a brief greeting.";
     
     console.time("Full Integration Response Time");
-    const updatedMessages = await ConversationService.sendMessage(testMessage);
+    const response = await chatGptService.sendMessage(testMessage);
     console.timeEnd("Full Integration Response Time");
     
-    if (!Array.isArray(updatedMessages)) {
-      console.error("❌ Failed to get updated messages after sending");
+    if (!response) {
+      console.error("❌ Failed to get response");
       return false;
     }
     
-    console.log(`✅ Got ${updatedMessages.length} messages after sending`);
+    console.log(`✅ Got response: "${response}"`);
+    
+    // Verify the conversation was updated
+    const updatedMessages = conversationStore.getMessages();
+    console.log(`✅ Conversation has ${updatedMessages.length} messages after sending`);
     
     // Get last message to see response
     const lastMessage = updatedMessages[updatedMessages.length - 1];
@@ -404,9 +419,12 @@ async function testFullIntegration() {
     
     // Reset conversation
     console.log("🔄 Resetting conversation...");
-    await ConversationService.resetConversation();
-    console.log("✅ Conversation reset");
+    await conversationStore.clearConversation();
     
+    const clearedMessages = conversationStore.getMessages();
+    console.log(`✅ Conversation reset. Now has ${clearedMessages.length} messages`);
+    
+    console.log("✅ Integration test successful!");
     return true;
   } catch (error) {
     console.error("❌ Full integration test failed:", error.message);
