@@ -1,13 +1,13 @@
 // src/services/conversation/index.js
 const { chatGptService } = require('./chatGptService');
 const { conversationStore } = require('./conversationStore');
-const { OPENAI_CONFIG } = require('./config');
+const { OPENAI_CONFIG, setApiKey } = require('./config');
 
 // Initialize services
 const initializeConversationService = async (apiKey = null) => {
   // Set API key if provided
   if (apiKey) {
-    OPENAI_CONFIG.apiKey = apiKey;
+    setApiKey(apiKey);
   }
   
   const result = await chatGptService.initialize();
@@ -37,6 +37,7 @@ module.exports = {
   chatGptService,
   conversationStore,
   OPENAI_CONFIG,
+  setApiKey,
   initializeConversationService,
   sendMessage,
   getConversation,

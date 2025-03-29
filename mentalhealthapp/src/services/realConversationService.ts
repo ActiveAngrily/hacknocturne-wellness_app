@@ -1,12 +1,15 @@
 // src/services/realConversationService.ts
 import { Message } from '../components/MessageBubble';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import the node.js modules dynamically for React Native
+// Import the conversation service functions
 const conversation = require('./conversation');
 const { 
   chatGptService, 
-  OPENAI_CONFIG 
+  OPENAI_CONFIG,
+  initializeConversationService,
+  sendMessage: sendChatGptMessage,
+  getConversation: getChatGptConversation,
+  clearConversation
 } = conversation;
 
 // Track initialization status
@@ -27,7 +30,7 @@ export const initialize = async (apiKey?: string): Promise<boolean> => {
     
     // Initialize the service
     if (!isInitialized) {
-      isInitialized = await chatGptService.initialize();
+      isInitialized = await initializeConversationService(apiKey);
       console.log('Real conversation service initialized:', isInitialized);
     }
     return isInitialized;
@@ -47,7 +50,7 @@ export const getMessages = async (): Promise<Message[]> => {
   }
   
   try {
-    return chatGptService.getConversation();
+    return getChatGptConversation();
   } catch (error) {
     console.error('Error getting messages:', error);
     // Return a fallback initial message if there's an error
@@ -71,19 +74,19 @@ export const sendMessage = async (text: string): Promise<Message[]> => {
     }
     
     // Send message with ChatGPT
-    await chatGptService.sendMessage(text, {
+    await sendChatGptMessage(text, {
       // You can add context data here from other services
     });
     
     // Return updated conversation
-    return chatGptService.getConversation();
+    return getChatGptConversation();
   } catch (error) {
     console.error('Error in realConversationService.sendMessage:', error);
     
     // Get the current conversation to append our error message
-    let currentConversation;
+    let currentConversation: Message[] = [];
     try {
-      currentConversation = chatGptService.getConversation();
+      currentConversation = getChatGptConversation();
     } catch (e) {
       // If we can't get the conversation, start with a basic array
       currentConversation = [];
@@ -125,7 +128,7 @@ export const resetConversation = async (): Promise<void> => {
       await initialize();
     }
     
-    await chatGptService.clearConversation();
+    await clearConversation();
   } catch (error) {
     console.error('Error resetting conversation:', error);
     // No need to throw, just log the error

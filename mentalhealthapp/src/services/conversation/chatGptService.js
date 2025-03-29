@@ -22,11 +22,17 @@ class ChatGptService {
     if (this.isInitialized) return true;
     
     try {
+      // Update API key from config in case it was set after construction
+      this.apiKey = OPENAI_CONFIG.apiKey;
+      
       // Initialize conversation store
-      await conversationStore.initialize();
+      if (!conversationStore.isInitialized) {
+        await conversationStore.initialize();
+      }
       
       this.isInitialized = true;
       console.log('ChatGPT service initialized');
+      console.log('API Key available:', this.apiKey ? 'Yes' : 'No');
       return true;
     } catch (error) {
       console.error('Error initializing ChatGPT service:', error);
@@ -43,6 +49,9 @@ class ChatGptService {
     try {
       // Add user message to conversation
       await conversationStore.addUserMessage(text);
+      
+      // Update API key from config in case it was updated
+      this.apiKey = OPENAI_CONFIG.apiKey;
       
       // Check if API key is present
       if (!this.apiKey) {
@@ -78,19 +87,24 @@ class ChatGptService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`
-          }
+          },
+          timeout: 15000 // 15 second timeout
         }
       );
       
       // Extract response text
-      const responseText = response.data.choices[0].message.content;
-      
-      // Add AI response to conversation
-      await conversationStore.addOrbMessage(responseText);
-      
-      return responseText;
+      if (response.data?.choices?.[0]?.message?.content) {
+        const responseText = response.data.choices[0].message.content;
+        
+        // Add AI response to conversation
+        await conversationStore.addOrbMessage(responseText);
+        
+        return responseText;
+      } else {
+        throw new Error('Invalid API response format');
+      }
     } catch (error) {
-      console.error('Error sending message to ChatGPT:', error);
+      console.error('Error sending message to ChatGPT:', error.response?.data || error.message);
       
       // If API fails, use a fallback response
       const fallbackResponse = this._getFallbackResponse(text);

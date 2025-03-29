@@ -14,8 +14,10 @@ import { COLORS, TYPOGRAPHY, SPACING } from '../theme';
 import OrbVisualization, { OrbState } from '../components/OrbVisualization';
 
 // Import services from mock conversation service
-import * as ConversationService from '../services/mockConversationService';
+// In both src/screens/OrbScreen.tsx and src/screens/ChatScreen.tsx
+// Replace the import:
 
+import * as ConversationService from '../services';
 // Screen dimensions
 const { width, height } = Dimensions.get('window');
 
