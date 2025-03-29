@@ -1,21 +1,18 @@
 // src/services/realConversationService.ts
 import { Message } from '../components/MessageBubble';
 
-// Generate a unique ID
-const generateId = () => Math.random().toString(36).substr(2, 9);
+// Import the conversation service functions
+const conversation = require('./conversation');
+const { 
+  chatGptService, 
+  OPENAI_CONFIG,
+  initializeConversationService,
+  sendMessage: sendChatGptMessage,
+  getConversation: getChatGptConversation,
+  clearConversation
+} = conversation;
 
-// Initial messages for the conversation
-const initialMessages: Message[] = [
-  {
-    id: generateId(),
-    text: "Hello! I'm Orb, your mental health companion. How are you feeling today?",
-    sender: 'orb',
-    timestamp: new Date()
-  }
-];
-
-// In-memory message store (fallback for when API fails)
-let messages = [...initialMessages];
+import { logError } from './errorService';
 
 // Track initialization status
 let isInitialized = false;
@@ -25,15 +22,22 @@ let isInitialized = false;
  */
 export const initialize = async (apiKey?: string): Promise<boolean> => {
   try {
-    console.log('Initializing real conversation service');
+    // Set the API key in config if provided
+    if (apiKey && apiKey.length > 0) {
+      OPENAI_CONFIG.apiKey = apiKey;
+      console.log('API key set successfully');
+    } else {
+      console.warn('No API key provided, will use env variable if available');
+    }
     
-    // For this fixed version, we'll just use an in-memory implementation
-    // until you get the API key issue sorted out
-    isInitialized = true;
-    
-    return true;
+    // Initialize the service
+    if (!isInitialized) {
+      isInitialized = await initializeConversationService(apiKey);
+      console.log('Real conversation service initialized:', isInitialized);
+    }
+    return isInitialized;
   } catch (error) {
-    console.error('Failed to initialize conversation service:', error);
+    logError('Failed to initialize conversation service', error);
     return false;
   }
 };
@@ -42,8 +46,23 @@ export const initialize = async (apiKey?: string): Promise<boolean> => {
  * Get all messages from the conversation
  */
 export const getMessages = async (): Promise<Message[]> => {
-  // Simply return the in-memory messages
-  return [...messages];
+  // Try to initialize if not already done
+  if (!isInitialized) {
+    await initialize();
+  }
+  
+  try {
+    return getChatGptConversation();
+  } catch (error) {
+    logError('Error getting messages', error);
+    // Return a fallback initial message if there's an error
+    return [{
+      id: 'initial', 
+      text: "Hello! I'm Orb, your mental health companion. How can I help you today?",
+      sender: 'orb',
+      timestamp: new Date()
+    }];
+  }
 };
 
 /**
@@ -51,75 +70,69 @@ export const getMessages = async (): Promise<Message[]> => {
  */
 export const sendMessage = async (text: string): Promise<Message[]> => {
   try {
-    // Add user message
-    const userMessage: Message = {
-      id: generateId(),
-      text,
-      sender: 'user',
-      timestamp: new Date()
-    };
+    // Try to initialize if not already done  
+    if (!isInitialized) {
+      await initialize();
+    }
     
-    messages.push(userMessage);
+    // Send message with ChatGPT
+    await sendChatGptMessage(text, {
+      // You can add context data here from other services
+    });
     
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate a simple response based on keywords
-    const responseText = generateSimpleResponse(text);
-    
-    const orbResponse: Message = {
-      id: generateId(),
-      text: responseText,
-      sender: 'orb',
-      timestamp: new Date()
-    };
-    
-    messages.push(orbResponse);
-    
-    return [...messages];
-    
+    // Return updated conversation  
+    return getChatGptConversation();
   } catch (error) {
-    console.error('Error in realConversationService.sendMessage:', error);
-    
-    // Add error message response
-    messages.push({
-      id: generateId(),
-      text: "I'm having trouble connecting to my services. Could you try again in a moment?",
+    logError('Error in realConversationService.sendMessage', error);
+
+    // Get the current conversation to append our error message
+    let currentConversation: Message[] = [];
+    try {
+      currentConversation = getChatGptConversation();
+    } catch (e) {
+      // If we can't get the conversation, start with a basic array
+      currentConversation = [];
+    }
+
+    // Add user message if it's not already there
+    const userMessageExists = currentConversation.some(
+      (msg: Message) => msg.sender === 'user' && msg.text === text
+    );
+
+    if (!userMessageExists) {
+      currentConversation.push({
+        id: `user-${Date.now()}`,
+        text,
+        sender: 'user',
+        timestamp: new Date()
+      });
+    }
+
+    // Add error message
+    currentConversation.push({
+      id: `error-${Date.now()}`,
+      text: "I'm sorry, I'm having trouble connecting to my services. Could you try again in a moment?",
       sender: 'orb',
       timestamp: new Date()
     });
-    
-    return [...messages];
+
+    return currentConversation;
   }
 };
 
 /**
- * Reset the conversation
+ * Reset the conversation 
  */
 export const resetConversation = async (): Promise<void> => {
   try {
-    messages = [...initialMessages];
-  } catch (error) {
-    console.error('Error resetting conversation:', error);
-    // No need to throw, just log the error
-  }
-};
+    // Try to initialize if not already done
+    if (!isInitialized) {
+      await initialize();
+    }
 
-// Helper function for simple keyword-based responses
-const generateSimpleResponse = (userMessage: string): string => {
-  const lowerCaseMessage = userMessage.toLowerCase();
-  
-  if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi')) {
-    return "Hello! How are you feeling today?";
-  } else if (lowerCaseMessage.includes('anxious') || lowerCaseMessage.includes('anxiety')) {
-    return "I understand feeling anxious can be difficult. Would you like to try a simple breathing exercise? Breathe in for 4 counts, hold for 7, and exhale for 8. This can help calm your nervous system.";
-  } else if (lowerCaseMessage.includes('sad') || lowerCaseMessage.includes('depressed')) {
-    return "I'm sorry to hear you're feeling down. Sometimes it helps to talk about what's bothering you or engage in an activity you enjoy. Would you like some suggestions?";
-  } else if (lowerCaseMessage.includes('sleep') || lowerCaseMessage.includes('tired')) {
-    return "Sleep is so important for mental health. Have you tried establishing a consistent bedtime routine? Reducing screen time before bed can also help improve sleep quality.";
-  } else if (lowerCaseMessage.includes('stress') || lowerCaseMessage.includes('overwhelmed')) {
-    return "Being overwhelmed by stress is common. Have you tried breaking down your tasks into smaller, manageable steps? Sometimes making a list can help reduce that feeling of being overwhelmed.";
-  } else {
-    return "I'm here to support you. Can you tell me more about what you're experiencing right now?";
+    await clearConversation();
+  } catch (error) {
+    logError('Error resetting conversation', error);
+    // No need to throw, just log the error
   }
 };
